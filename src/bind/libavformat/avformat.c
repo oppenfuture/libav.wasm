@@ -103,6 +103,12 @@ void _avstream_set_time_base(AVStream *stream, AVRational *time_base) {
 	stream->time_base = *time_base;
 }
 
+
+EMSCRIPTEN_KEEPALIVE
+int _avstream_nb_frames(AVStream *stream) {
+	return stream->nb_frames;
+}
+
 /**
  * Functions
  */

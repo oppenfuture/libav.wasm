@@ -40,7 +40,7 @@ COPY --from=x264-builder $INSTALL_DIR $INSTALL_DIR
 
 # Build libav
 FROM libav-base AS libav-builder
-RUN emconfigure ./configure \
+RUN make distclean; emconfigure ./configure \
   --target-os=none \
   --arch=x86_32 \
   --enable-cross-compile \
@@ -64,7 +64,15 @@ RUN emconfigure ./configure \
   --objcc=emcc \
   --dep-cc=emcc \
   --enable-gpl \
-  --enable-libx264 \
+  --disable-encoders \
+  --disable-decoders \
+  --disable-muxers \
+  --enable-decoder=h264 \
+  --disable-hwaccels \
+  --disable-parsers \
+  --disable-bsfs \
+  --disable-devices \
+  --disable-filters \
   && \
   emmake make -j
 
