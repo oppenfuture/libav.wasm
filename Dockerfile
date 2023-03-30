@@ -54,6 +54,22 @@ RUN make distclean; emconfigure ./configure \
   --disable-pthreads \
   --disable-w32threads \
   --disable-os2threads \
+  --disable-swscale-alpha \
+  --disable-swresample \
+  --disable-swscale \
+  --disable-postproc \
+  --disable-avfilter \
+  --disable-avdevice \
+  --disable-network \
+  --disable-dct \
+  --disable-dwt \
+  --disable-lsp \
+  --disable-mdct \
+  --disable-rdft \
+  --disable-fft \
+  --disable-faan \
+  --disable-pixelutils \
+  --enable-small \
   --extra-cflags="$CFLAGS" \
   --extra-cxxflags="$CFLAGS" \
   --nm="llvm-nm" \
@@ -66,11 +82,13 @@ RUN make distclean; emconfigure ./configure \
   --enable-gpl \
   --disable-encoders \
   --disable-decoders \
-  --disable-muxers \
   --enable-decoder=h264 \
   --disable-hwaccels \
+  --disable-muxers \
   --disable-parsers \
   --disable-bsfs \
+  --disable-indevs \
+  --disable-outdevs \
   --disable-devices \
   --disable-filters \
   && \
@@ -86,28 +104,18 @@ RUN emcc \
   -I$INSTALL_DIR/include \
   -L$INSTALL_DIR/lib \
   -Llibavcodec \
-  -Llibavdevice \
-  -Llibavfilter \
   -Llibavformat \
   -Llibavutil \
-  -Llibpostproc \
-  -Llibswresample \
-  -Llibswscale \
   -lavcodec \
-  -lavdevice \
-  -lavfilter \
   -lavformat \
   -lavutil \
-  -lpostproc \
-  -lswresample \
-  -lswscale \
-  -lx264 \
   -Wno-deprecated-declarations \
   $LDFLAGS \
   -sMODULARIZE \
   -sALLOW_MEMORY_GROWTH \
   -sEXPORTED_FUNCTIONS=$(node src/bind/export.js) \
   -sEXPORTED_RUNTIME_METHODS=$(node src/bind/export-runtime.js) \
+  -sENVIRONMENT="worker" \
   --pre-js src/bind/bind.js \
   -o dist/libav-core.js \
   src/bind/**/*.c

@@ -34,9 +34,6 @@ const EXPORTED_FUNCTIONS = [
   "_malloc",
   "_free",
   "_av_pix_fmt_desc_get",
-  "_sws_getContext",
-  "_sws_freeContext",
-  "_sws_scale_frame",
 ];
 
 console.log(EXPORTED_FUNCTIONS.join(","));
