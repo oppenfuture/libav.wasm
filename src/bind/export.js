@@ -9,10 +9,12 @@ const EXPORTED_FUNCTIONS = [
   "_av_packet_free",
   "_av_packet_unref",
   "_av_read_frame",
+  "_av_seek_frame",
   "_av_write_trailer",
   "_avcodec_alloc_context3",
   "_avcodec_find_decoder",
   "_avcodec_find_encoder_by_name",
+  "_avcodec_flush_buffers",
   "_avcodec_open2",
   "_avcodec_parameters_copy",
   "_avcodec_parameters_from_context",
@@ -31,6 +33,7 @@ const EXPORTED_FUNCTIONS = [
   "_avio_open",
   "_malloc",
   "_free",
+  "_av_pix_fmt_desc_get",
 ];
 
 console.log(EXPORTED_FUNCTIONS.join(","));

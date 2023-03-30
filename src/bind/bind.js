@@ -109,6 +109,10 @@ class AVStream extends Base {
     return new AVRational(Module["__avstream_avg_frame_rate"](this.ptr));
   }
 
+  get nb_frames() {
+    return Module["__avstream_nb_frames"](this.ptr);
+  }
+
   set time_base(tb) {
     Module["__avstream_set_time_base"](this.ptr, tb.ptr);
   }
@@ -212,6 +216,37 @@ class AVFrame extends Base {
   set pict_type(t) {
     Module["__avframe_pict_type"](this.ptr, t);
   }
+
+  get width() {
+    return Module["__avframe_width"](this.ptr);
+  }
+
+  get height() {
+    return Module["__avframe_height"](this.ptr);
+  }
+
+  get format() {
+    return Module["__avframe_format"](this.ptr);
+  }
+
+  get nb_samples() {
+    return Module.__avframe_nb_samples(this.ptr);
+  }
+
+  get linesize() {
+    let ret = [];
+    for (var i = 0; i < 8 /* AV_NUM_DATA_POINTERS */; i++) {
+      var linesize = Module.__avframe_linesize(this.ptr, i);
+      ret.push(linesize);
+      if (!linesize)
+        break;
+    }
+    return ret;
+  }
+
+  copyout_frame() {
+    return _copyout_frame(this.ptr);
+  }
 }
 
 class AVPacket extends Base {
@@ -284,3 +319,157 @@ Module["onRuntimeInitialized"] = function () {
   Module["FF_COMPLIANCE_EXPERIMENTAL"] =
     Module["__ff_compliance_experimental"]();
 };
+
+var copyout_u8 = Module.copyout_u8 = function (ptr, len) {
+  return (new Uint8Array(Module.HEAPU8.buffer, ptr, len)).slice(0);
+};
+
+var copyout_s16 = Module.copyout_s16 = function (ptr, len) {
+  return (new Int16Array(Module.HEAPU8.buffer, ptr, len)).slice(0);
+};
+
+var copyout_s32 = Module.copyout_s32 = function (ptr, len) {
+  return (new Int32Array(Module.HEAPU8.buffer, ptr, len)).slice(0);
+};
+
+var copyout_f32 = Module.copyout_f32 = function (ptr, len) {
+  return (new Float32Array(Module.HEAPU8.buffer, ptr, len)).slice(0);
+};
+
+var _copyout_frame = Module._copyout_frame = function(frame) {
+  var nb_samples = Module.__avframe_nb_samples(frame);
+  if (nb_samples === 0) {
+      // Maybe a video frame?
+      var width = Module.__avframe_width(frame);
+      if (width)
+          return _copyout_frame_video(frame, width);
+  }
+  var channels = Module.__avframe_channels(frame);
+  var format = Module.__avframe_format(frame);
+  var outFrame = {
+      data: null,
+      channel_layout: Module.__avframe_channel_layout(frame),
+      channels: channels,
+      format: format,
+      nb_samples: nb_samples,
+      pts: Module.__avframe_pts(frame),
+      ptshi: Module.__avframe_pts_high(frame),
+      sample_rate: Module.__avframe_sample_rate(frame)
+  };
+
+  // FIXME: Need to support *every* format here
+  if (format >= 5 /* U8P */) {
+      // Planar format, multiple data pointers
+      var data = [];
+      for (var ci = 0; ci < channels; ci++) {
+          var inData = Module.__avframe_data(frame, ci);
+          switch (format) {
+              case 5: // U8P
+                  data.push(copyout_u8(inData, nb_samples));
+                  break;
+
+              case 6: // S16P
+                  data.push(copyout_s16(inData, nb_samples));
+                  break;
+
+              case 7: // S32P
+                  data.push(copyout_s32(inData, nb_samples));
+                  break;
+
+              case 8: // FLT
+                  data.push(copyout_f32(inData, nb_samples));
+                  break;
+          }
+      }
+      outFrame.data = data;
+
+  } else {
+      var ct = channels*nb_samples;
+      var inData = Module.__avframe_data(frame, 0);
+      switch (format) {
+          case 0: // U8
+              outFrame.data = copyout_u8(inData, ct);
+              break;
+
+          case 1: // S16
+              outFrame.data = copyout_s16(inData, ct);
+              break;
+
+          case 2: // S32
+              outFrame.data = copyout_s32(inData, ct);
+              break;
+
+          case 3: // FLT
+              outFrame.data = copyout_f32(inData, ct);
+              break;
+      }
+
+  }
+
+  return outFrame;
+};
+
+var _copyout_frame_video = Module._copyout_frame_video = function(frame, width) {
+  var data = [];
+  var height = Module.__avframe_height(frame);
+  var format = Module.__avframe_format(frame);
+  var desc = Module._av_pix_fmt_desc_get(format);
+  var outFrame = {
+      data: data,
+      width: width,
+      height: height,
+      format: Module.__avframe_format(frame),
+      key_frame: Module.__avframe_key_frame(frame),
+      pict_type: Module.__avframe_pict_type(frame),
+      pts: Module.__avframe_pts(frame),
+      ptshi: Module.__avframe_pts_high(frame),
+      sample_aspect_ratio: [
+          Module.__avframe_sample_aspect_ratio_num(frame),
+          Module.__avframe_sample_aspect_ratio_den(frame)
+      ]
+  };
+
+  for (var i = 0; i < 8 /* AV_NUM_DATA_POINTERS */; i++) {
+      var linesize = Module.__avframe_linesize(frame, i);
+      if (!linesize)
+          break;
+      var inData = Module.__avframe_data(frame, i);
+      var h = height;
+      if (i === 1 || i === 2)
+          h >>= Module.__avpixfmtdescriptor_log2_chroma_h(desc);
+      data.push(copyout_u8(inData, linesize*h));
+  }
+
+  return outFrame;
+};
+
+function enume(vals, first) {
+  let ret = {};
+  var i = first;
+  vals.forEach(function(val) {
+      ret[val] = i++;
+  });
+  return ret;
+}
+
+// AVPixelFormat
+Module['AVPixelFormat'] = enume(["AV_PIX_FMT_NONE", "AV_PIX_FMT_YUV420P",
+"AV_PIX_FMT_YUYV422", "AV_PIX_FMT_RGB24", "AV_PIX_FMT_BGR24",
+"AV_PIX_FMT_YUV422P", "AV_PIX_FMT_YUV444P",
+"AV_PIX_FMT_YUV410P", "AV_PIX_FMT_YUV411P", "AV_PIX_FMT_GRAY8",
+"AV_PIX_FMT_MONOWHITE", "AV_PIX_FMT_MONOBLACK",
+"AV_PIX_FMT_PAL8", "AV_PIX_FMT_YUVJ420P",
+"AV_PIX_FMT_YUVJ422P", "AV_PIX_FMT_YUVJ444P",
+"AV_PIX_FMT_UYVY422", "AV_PIX_FMT_UYYVYY411",
+"AV_PIX_FMT_BGR8", "AV_PIX_FMT_BGR4", "AV_PIX_FMT_BGR4_BYTE",
+"AV_PIX_FMT_RGB8", "AV_PIX_FMT_RGB4", "AV_PIX_FMT_RGB4_BYTE",
+"AV_PIX_FMT_NV12", "AV_PIX_FMT_NV21", "AV_PIX_FMT_ARGB",
+"AV_PIX_FMT_RGBA", "AV_PIX_FMT_ABGR", "AV_PIX_FMT_BGRA",
+"AV_PIX_FMT_GRAY16BE", "AV_PIX_FMT_GRAY16LE",
+"AV_PIX_FMT_YUV440P", "AV_PIX_FMT_YUVJ440P",
+"AV_PIX_FMT_YUVA420P", "AV_PIX_FMT_RGB48BE",
+"AV_PIX_FMT_RGB48LE", "AV_PIX_FMT_RGB565BE",
+"AV_PIX_FMT_RGB565LE", "AV_PIX_FMT_RGB555BE",
+"AV_PIX_FMT_RGB555LE", "AV_PIX_FMT_BGR565BE",
+"AV_PIX_FMT_BGR565LE", "AV_PIX_FMT_BGR555BE",
+"AV_PIX_FMT_BGR555LE"], -1);

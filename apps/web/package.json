@@ -1,0 +1,33 @@
+{
+  "name": "web",
+  "version": "0.0.0",
+  "description": "libav.wasm web demo apps",
+  "main": "dist/index.js",
+  "module": "dist/index.js",
+  "scripts": {
+    "dev": "concurrently --names \"Watch,Http\" -c \"bgBlue.bold,bgGreen.bold\" \"rollup -c rollup.config.mjs -w -m inline\" \"servez  -p 8280\"",
+    "build": "rollup -c rollup.config.mjs",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "@ffmpeg/libav": "^0.0.1-alpha.0",
+    "@ffmpeg/libav-core": "^0.0.1-alpha.1",
+    "@ffmpeg/libav-core-mt": "^0.0.1-alpha.1",
+    "@types/ffmpeg__libav-core": "^0.0.0",
+    "yuv-buffer": "^1.0.0",
+    "yuv-canvas": "^1.2.11"
+  },
+  "devDependencies": {
+    "@rollup/plugin-commonjs": "^24.0.1",
+    "@rollup/plugin-node-resolve": "^15.0.1",
+    "concurrently": "^7.6.0",
+    "rollup": "^3.12.1",
+    "rollup-plugin-copy": "^3.4.0",
+    "rollup-plugin-esbuild": "^5.0.0",
+    "rollup-plugin-node-externals": "^5.1.2",
+    "servez": "^1.14.1"
+  }
+}
